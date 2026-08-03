@@ -1,4 +1,41 @@
 @import "tailwindcss";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-sans/700.css";
+
+/*
+ * Velocity Read design tokens (see DESIGN.md).
+ * Tailwind v4 CSS-first config. These generate utilities such as
+ * bg-base, bg-surface, text-text, text-accent, border-border, font-sans, etc.
+ */
+@theme {
+  /* Color */
+  --color-base: #121212;
+  --color-surface: #1a1a1a;
+  --color-elevated: #222222;
+  --color-border: #333333;
+  --color-text: #e6e6e6;
+  --color-text-secondary: #a6a6a6;
+  --color-text-muted: #888888;
+  --color-text-dim: #6e6e6e;
+  --color-accent: #e8a33c;
+  --color-accent-bright: #f5b85c;
+
+  /* Typography */
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-reader: Georgia, "Times New Roman", serif;
+
+  --text-rsvp: 56px;
+  --text-reader-size: 17px;
+  --text-ui: 14px;
+  --text-sm: 12px;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+}
 
 * {
   margin: 0;
@@ -10,8 +47,8 @@ html, body, #root {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #121212;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--color-base);
+  font-family: var(--font-sans);
 }
 
 @keyframes blink {
