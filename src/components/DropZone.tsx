@@ -108,7 +108,7 @@ export default function DropZone() {
         <div className="text-text-muted text-sm font-mono">
           or click to browse
         </div>
-        <div className="text-text-dim text-xs mt-5 font-mono tracking-wider">
+        <div className="text-text-muted text-xs mt-5 font-mono tracking-wider">
           EPUB · PDF · TXT · MD
         </div>
         <input

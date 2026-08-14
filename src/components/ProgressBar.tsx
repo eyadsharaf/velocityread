@@ -15,7 +15,7 @@ export default function ProgressBar() {
       style={{ top: 'env(safe-area-inset-top, 0px)' }}
     >
       <div
-        className="h-full bg-accent transition-all duration-150"
+        className="h-full bg-accent transition-[width] duration-200 ease-out"
         style={{ width: `${pct}%` }}
       />
     </div>

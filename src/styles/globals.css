@@ -115,3 +115,12 @@ body {
 .fade-in {
   animation: fadeInOut 0.3s ease-in-out;
 }
+
+/* WPM label pulse — replays on every wpm change (span is keyed by wpm) */
+@keyframes wpmPulse {
+  40% { transform: scale(1.1); color: var(--color-accent); }
+}
+
+.wpm-pulse {
+  animation: wpmPulse 300ms ease-out;
+}

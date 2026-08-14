@@ -35,7 +35,7 @@ const SentenceRow = memo(function SentenceRow({
     <div
       ref={(el) => registerRef(sIdx, el)}
       className={`rounded-md px-5 py-3 transition-colors duration-200 ${
-        isCurrent ? 'bg-white/5' : ''
+        isCurrent ? 'bg-white/[0.08]' : ''
       }`}
       style={startsNewPara ? { marginTop: '28px' } : undefined}
     >
@@ -62,7 +62,7 @@ const SentenceRow = memo(function SentenceRow({
                 {word}
               </span>
               {isCurrentWord && (
-                <span className="caret-blink inline-block w-[2px] h-[18px] bg-accent ml-[1px] align-middle" />
+                <span className="caret-blink inline-block w-[2px] h-[15px] bg-accent ml-[1px] align-middle" />
               )}
               {' '}
             </span>

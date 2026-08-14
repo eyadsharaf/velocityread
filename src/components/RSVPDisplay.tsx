@@ -53,16 +53,9 @@ export default function RSVPDisplay() {
         setPlaying(!isPlaying);
       }}
     >
-      {/* Tick marks at anchor position */}
-      <div
-        className="absolute pointer-events-none"
-        style={{ left: `${anchorX}px`, top: '50%', transform: 'translate(-50%, -50%)' }}
-      >
-        <div className="absolute -top-16 w-[2px] h-3 bg-accent" />
-        <div className="absolute top-16 w-[2px] h-3 bg-accent" />
-      </div>
-
-      {/* Word display - shifted so ORP aligns with anchor */}
+      {/* Word display - shifted so ORP aligns with anchor.
+          Tick marks live INSIDE the word container (bound to the ORP char) so
+          they hug the word at every font-size tier instead of a fixed 64px gap. */}
       <div
         ref={wordContainerRef}
         className="absolute"
@@ -72,6 +65,22 @@ export default function RSVPDisplay() {
           transform: 'translateY(-50%)',
         }}
       >
+        <span
+          className="absolute w-[2px] h-3 bg-accent pointer-events-none"
+          style={{
+            left: `${orpOffset}px`,
+            bottom: 'calc(100% + 8px)',
+            transform: 'translateX(-50%)',
+          }}
+        />
+        <span
+          className="absolute w-[2px] h-3 bg-accent pointer-events-none"
+          style={{
+            left: `${orpOffset}px`,
+            top: 'calc(100% + 8px)',
+            transform: 'translateX(-50%)',
+          }}
+        />
         <span className="font-sans font-medium text-text text-rsvp leading-none whitespace-nowrap select-none">
           {chars.map((ch, i) => (
             <span
