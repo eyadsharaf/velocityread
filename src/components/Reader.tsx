@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useReaderStore } from '../store/readerStore';
 import { useRSVP } from '../hooks/useRSVP';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useWakeLock } from '../hooks/useWakeLock';
 import RSVPDisplay from './RSVPDisplay';
 import RSVPControls from './RSVPControls';
 import TextPanel from './TextPanel';
@@ -13,6 +14,9 @@ export default function Reader() {
   const { isPlaying, doc } = useReaderStore();
   const [showControls, setShowControls] = useState(true);
   const [fadeTimer, setFadeTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  // Keep the screen awake while playing
+  useWakeLock(isPlaying);
 
   // Auto-fade controls after 3s
   useEffect(() => {
@@ -26,7 +30,7 @@ export default function Reader() {
     return () => clearTimeout(t);
   }, [isPlaying]);
 
-  // Show controls on mouse movement
+  // Show controls on mouse movement or touch
   useEffect(() => {
     const onMove = () => {
       setShowControls(true);
@@ -37,7 +41,11 @@ export default function Reader() {
       }
     };
     window.addEventListener('mousemove', onMove);
-    return () => window.removeEventListener('mousemove', onMove);
+    window.addEventListener('touchstart', onMove, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('touchstart', onMove);
+    };
   }, [isPlaying, fadeTimer]);
 
   if (!doc) return null;
@@ -45,8 +53,11 @@ export default function Reader() {
   return (
     <div className="flex flex-col h-full w-full">
       <ProgressBar />
-      {/* Top half - RSVP */}
-      <div className="relative h-1/2 bg-base overflow-hidden">
+      {/* Top half - RSVP (padded below the notch) */}
+      <div
+        className="relative h-1/2 bg-base overflow-hidden"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
         <RSVPDisplay />
         <div
           className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${

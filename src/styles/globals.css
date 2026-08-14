@@ -54,6 +54,43 @@ html, body, #root {
   font-family: var(--font-sans);
 }
 
+/* --- iOS / mobile hardening --- */
+
+/* Kill rubber-band bounce + pull-to-refresh */
+html,
+body {
+  overscroll-behavior: none;
+}
+
+/* Kill double-tap zoom delay */
+body {
+  touch-action: manipulation;
+}
+
+/* Real viewport height on iOS (dvh) with vh fallback */
+#root {
+  height: 100vh;
+  height: 100dvh;
+  /* No accidental text selection / callout in the RSVP display */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Re-enable selection + lookup in the reading text panel */
+.text-panel {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* Narrow phones (390px class): shrink RSVP text so long words + ORP anchor fit */
+@media (max-width: 430px) {
+  .text-rsvp {
+    font-size: 42px;
+  }
+}
+
 @keyframes blink {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }

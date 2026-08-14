@@ -10,7 +10,10 @@ export default function ProgressBar() {
     : 0;
 
   return (
-    <div className="fixed top-0 left-0 right-0 h-[2px] bg-elevated z-50">
+    <div
+      className="fixed left-0 right-0 h-[2px] bg-elevated z-50"
+      style={{ top: 'env(safe-area-inset-top, 0px)' }}
+    >
       <div
         className="h-full bg-accent transition-all duration-150"
         style={{ width: `${pct}%` }}
