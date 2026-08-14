@@ -1,0 +1,73 @@
+name: Deploy to GitHub Pages
+
+# Build on every push to master (and manually). Deploy ONLY runs when the
+# repository has GitHub Pages enabled — on a private repo with Pages disabled
+# the workflow builds, verifies, and skips the deploy step.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      pages_enabled: ${{ steps.check-pages.outputs.pages_enabled }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Check if Pages is enabled
+        id: check-pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pages")
+          if [ "$code" = "200" ]; then
+            echo "pages_enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Pages not enabled (HTTP $code) — skipping deploy." >> "$GITHUB_STEP_SUMMARY"
+            echo "pages_enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    if: needs.build.outputs.pages_enabled == 'true'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
