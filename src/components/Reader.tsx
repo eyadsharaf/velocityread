@@ -12,6 +12,7 @@ export default function Reader() {
   useRSVP();
   useKeyboardShortcuts();
   const { isPlaying, doc } = useReaderStore();
+  const controlsWake = useReaderStore((s) => s.controlsWake);
   const [showControls, setShowControls] = useState(true);
   const [fadeTimer, setFadeTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
@@ -47,6 +48,16 @@ export default function Reader() {
       window.removeEventListener('touchstart', onMove);
     };
   }, [isPlaying, fadeTimer]);
+
+  // Keyboard actions wake the controls too (same as mousemove/touchstart)
+  useEffect(() => {
+    if (!controlsWake) return;
+    setShowControls(true);
+    if (fadeTimer) clearTimeout(fadeTimer);
+    if (isPlaying) {
+      setFadeTimer(setTimeout(() => setShowControls(false), 3000));
+    }
+  }, [controlsWake]);
 
   if (!doc) return null;
 

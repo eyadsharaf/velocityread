@@ -10,7 +10,10 @@ interface ReaderState {
   userScrolledAway: boolean;
   /** True once launch-time restore has run — prevents import-screen flash. */
   hydrated: boolean;
+  /** Incremented by keyboard shortcuts so the controls fade timer resets. */
+  controlsWake: number;
 
+  wakeControls: () => void;
   setDocument: (doc: ParsedDocument, fileName: string) => void;
   setCurrentIndex: (index: number) => void;
   setPlaying: (playing: boolean) => void;
@@ -30,7 +33,9 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
   fileName: null,
   userScrolledAway: false,
   hydrated: false,
+  controlsWake: 0,
 
+  wakeControls: () => set((s) => ({ controlsWake: s.controlsWake + 1 })),
   setDocument: (doc, fileName) =>
     set({ doc, fileName, currentIndex: 0, isPlaying: false }),
 
