@@ -8,12 +8,15 @@ interface ReaderState {
   wpm: number;
   fileName: string | null;
   userScrolledAway: boolean;
+  /** True once launch-time restore has run — prevents import-screen flash. */
+  hydrated: boolean;
 
   setDocument: (doc: ParsedDocument, fileName: string) => void;
   setCurrentIndex: (index: number) => void;
   setPlaying: (playing: boolean) => void;
   setWpm: (wpm: number) => void;
   setUserScrolledAway: (away: boolean) => void;
+  setHydrated: () => void;
   rewindSentence: () => void;
   skipSentence: () => void;
   reset: () => void;
@@ -26,6 +29,7 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
   wpm: 350,
   fileName: null,
   userScrolledAway: false,
+  hydrated: false,
 
   setDocument: (doc, fileName) =>
     set({ doc, fileName, currentIndex: 0, isPlaying: false }),
@@ -76,4 +80,6 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
 
   reset: () =>
     set({ doc: null, currentIndex: 0, isPlaying: false, fileName: null, userScrolledAway: false }),
+
+  setHydrated: () => set({ hydrated: true }),
 }));

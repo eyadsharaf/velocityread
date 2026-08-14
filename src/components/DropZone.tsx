@@ -4,6 +4,7 @@ import { parseText } from '../utils/textParser';
 import { parseMarkdown } from '../utils/markdownParser';
 import { parseEpub } from '../utils/epubParser';
 import { parsePdf } from '../utils/pdfParser';
+import { saveBook, saveStateDebounced } from '../utils/persistence';
 import type { ParsedDocument } from '../types';
 
 const ACCEPTED = '.epub,.pdf,.txt,.md';
@@ -40,6 +41,10 @@ export default function DropZone() {
         }
 
         setDocument(doc, file.name);
+        // Persist the imported book + initial state at index 0 (replaces any
+        // previous book — single-key store).
+        saveBook({ blob: file, fileName: file.name, importWpm: wpm });
+        saveStateDebounced(0, wpm);
       } catch (e: any) {
         setError(e.message || 'Failed to load file');
       } finally {
