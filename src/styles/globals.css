@@ -87,7 +87,14 @@ body {
 /* Narrow phones (390px class): shrink RSVP text so long words + ORP anchor fit */
 @media (max-width: 430px) {
   .text-rsvp {
-    font-size: 42px;
+    font-size: 38px;
+  }
+}
+
+/* Very narrow phones (360px class): shrink further */
+@media (max-width: 360px) {
+  .text-rsvp {
+    font-size: 32px;
   }
 }
 

@@ -222,7 +222,7 @@ export default function TextPanel() {
       ref={scrollRef}
       onScroll={handleScroll}
       onClick={handleContainerClick}
-      className="text-panel h-full overflow-y-auto bg-surface px-6 py-6 sm:px-24 sm:py-10"
+      className="text-panel h-full overflow-y-auto bg-surface px-7 py-6 sm:px-24 sm:py-10"
     >
       <div className="max-w-3xl mx-auto pb-[50vh] pt-[40vh]">{rows}</div>
     </div>
