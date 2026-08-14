@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback } from 'react';
 import { useReaderStore } from '../store/readerStore';
 import { parseText } from '../utils/textParser';
+import { parseMarkdown } from '../utils/markdownParser';
 import { parseEpub } from '../utils/epubParser';
 import { parsePdf } from '../utils/pdfParser';
 import type { ParsedDocument } from '../types';
@@ -26,6 +27,9 @@ export default function DropZone() {
           doc = await parseEpub(file, wpm);
         } else if (ext === 'pdf') {
           doc = await parsePdf(file, wpm);
+        } else if (ext === 'md' || ext === 'markdown') {
+          const text = await file.text();
+          doc = parseMarkdown(text, wpm);
         } else {
           const text = await file.text();
           doc = parseText(text, wpm);
@@ -67,30 +71,40 @@ export default function DropZone() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-[#E0E0E0] text-lg">Loading…</div>
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-6 h-6 rounded-full border-2 border-border border-t-accent animate-spin" />
+        <div className="text-text-muted text-sm font-mono">Loading…</div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full px-8">
+    <div className="flex flex-col items-center w-full max-w-md">
       <div
         onClick={() => inputRef.current?.click()}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
-        className={`w-full max-w-md border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all ${
+        className={`relative w-full border border-dashed rounded-md px-8 py-14 text-center cursor-pointer transition-colors ${
           isDragging
-            ? 'border-[#FF3B30] bg-[#FF3B30]/5'
-            : 'border-[#333] hover:border-[#555] hover:bg-[#1A1A1A]'
+            ? 'border-accent bg-accent/5'
+            : 'border-border hover:border-text-dim hover:bg-elevated'
         }`}
       >
-        <div className="text-[#E0E0E0] text-xl font-medium mb-2">
+        {/* Mechanical corner ticks */}
+        <span className="absolute top-2 left-2 w-2 h-2 border-t border-l border-text-dim" />
+        <span className="absolute top-2 right-2 w-2 h-2 border-t border-r border-text-dim" />
+        <span className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-text-dim" />
+        <span className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-text-dim" />
+
+        <div className="text-text text-lg font-semibold mb-1 font-sans tracking-tight">
           Drop a file here
         </div>
-        <div className="text-[#666] text-sm">
-          EPUB, PDF, TXT, or Markdown
+        <div className="text-text-muted text-sm font-mono">
+          or click to browse
+        </div>
+        <div className="text-text-dim text-xs mt-5 font-mono tracking-wider">
+          EPUB · PDF · TXT · MD
         </div>
         <input
           ref={inputRef}
@@ -104,7 +118,7 @@ export default function DropZone() {
         />
       </div>
       {error && (
-        <div className="mt-4 text-[#FF3B30] text-sm">{error}</div>
+        <div className="mt-4 text-accent text-sm text-center font-mono">{error}</div>
       )}
     </div>
   );

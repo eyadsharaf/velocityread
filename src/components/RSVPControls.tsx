@@ -16,7 +16,7 @@ export default function RSVPControls() {
             setPlaying(!isPlaying);
           }
         }}
-        className="w-12 h-12 rounded-full bg-[#1A1A1A] hover:bg-[#2A2A2A] border border-[#333] flex items-center justify-center text-[#E0E0E0] transition-colors"
+        className="w-12 h-12 rounded-full bg-surface hover:bg-elevated border border-border flex items-center justify-center text-text transition-colors"
         aria-label={userScrolledAway ? 'Resume' : isPlaying ? 'Pause' : 'Play'}
       >
         {isPlaying ? (
@@ -30,7 +30,7 @@ export default function RSVPControls() {
           </svg>
         )}
       </button>
-      <span className="text-[#888] text-sm tabular-nums">{wpm} WPM</span>
+      <span className="text-text-muted text-sm font-mono tabular-nums tracking-wider">{wpm} WPM</span>
     </div>
   );
 }

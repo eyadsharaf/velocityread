@@ -2,6 +2,11 @@ import type { ParsedDocument } from '../types';
 import { parseText } from './textParser';
 // @ts-ignore - pdfjs-dist types
 import * as pdfjsLib from 'pdfjs-dist';
+// @ts-ignore - Vite ?url import gives the resolved, version-matched worker URL
+import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+// Configure the worker once, before any getDocument() call.
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
 export async function parsePdf(file: File, baseWPM: number = 350): Promise<ParsedDocument> {
   const arrayBuffer = await file.arrayBuffer();
@@ -19,7 +24,7 @@ export async function parsePdf(file: File, baseWPM: number = 350): Promise<Parse
   }
 
   if (!fullText.trim()) {
-    throw new Error('Could not extract text from PDF');
+    throw new Error('No readable text in PDF — it may be scanned images (OCR not supported)');
   }
 
   return parseText(fullText, baseWPM);

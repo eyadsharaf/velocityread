@@ -1,6 +1,9 @@
 import { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import { useReaderStore } from '../store/readerStore';
 
+/** Horizontal position (as a fraction of pane width) where the ORP char is anchored. */
+const ORP_ANCHOR_RATIO = 0.42;
+
 export default function RSVPDisplay() {
   const { doc, currentIndex, isPlaying, setPlaying, userScrolledAway } = useReaderStore();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -12,7 +15,7 @@ export default function RSVPDisplay() {
   useEffect(() => {
     const update = () => {
       if (containerRef.current) {
-        setAnchorX(containerRef.current.offsetWidth * 0.42);
+        setAnchorX(containerRef.current.offsetWidth * ORP_ANCHOR_RATIO);
       }
     };
     update();
@@ -44,7 +47,7 @@ export default function RSVPDisplay() {
   return (
     <div
       ref={containerRef}
-      className="relative flex items-center justify-start h-full overflow-hidden bg-[#121212]"
+      className="relative flex items-center justify-start h-full overflow-hidden bg-base"
       onClick={() => {
         if (userScrolledAway) return;
         setPlaying(!isPlaying);
@@ -55,8 +58,8 @@ export default function RSVPDisplay() {
         className="absolute pointer-events-none"
         style={{ left: `${anchorX}px`, top: '50%', transform: 'translate(-50%, -50%)' }}
       >
-        <div className="absolute -top-16 w-[2px] h-3 bg-[#FF3B30]" />
-        <div className="absolute top-16 w-[2px] h-3 bg-[#FF3B30]" />
+        <div className="absolute -top-16 w-[2px] h-3 bg-accent" />
+        <div className="absolute top-16 w-[2px] h-3 bg-accent" />
       </div>
 
       {/* Word display - shifted so ORP aligns with anchor */}
@@ -69,19 +72,11 @@ export default function RSVPDisplay() {
           transform: 'translateY(-50%)',
         }}
       >
-        <span
-          className="text-[56px] leading-none whitespace-nowrap select-none"
-          style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, color: '#E0E0E0' }}
-        >
+        <span className="font-sans font-medium text-text text-rsvp leading-none whitespace-nowrap select-none">
           {chars.map((ch, i) => (
             <span
               key={i}
-              className={i === orpIdx ? 'orp-char' : ''}
-              style={
-                i === orpIdx
-                  ? { color: '#FF3B30', fontWeight: 700 }
-                  : undefined
-              }
+              className={i === orpIdx ? 'orp-char text-accent font-bold' : ''}
             >
               {ch}
             </span>
@@ -91,8 +86,8 @@ export default function RSVPDisplay() {
 
       {/* "Tap to resume" overlay */}
       {userScrolledAway && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#121212]/80 z-10">
-          <span className="text-[#888] text-lg">Tap to resume</span>
+        <div className="absolute inset-0 flex items-center justify-center bg-base/80 z-10">
+          <span className="text-text-muted text-lg">Tap to resume</span>
         </div>
       )}
     </div>

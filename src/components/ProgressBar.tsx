@@ -10,9 +10,9 @@ export default function ProgressBar() {
     : 0;
 
   return (
-    <div className="fixed top-0 left-0 right-0 h-[2px] bg-[#222] z-50">
+    <div className="fixed top-0 left-0 right-0 h-[2px] bg-elevated z-50">
       <div
-        className="h-full bg-[#FF3B30] transition-all duration-150"
+        className="h-full bg-accent transition-all duration-150"
         style={{ width: `${pct}%` }}
       />
     </div>

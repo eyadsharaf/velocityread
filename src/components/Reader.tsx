@@ -46,7 +46,7 @@ export default function Reader() {
     <div className="flex flex-col h-full w-full">
       <ProgressBar />
       {/* Top half - RSVP */}
-      <div className="relative h-1/2 bg-[#121212] overflow-hidden">
+      <div className="relative h-1/2 bg-base overflow-hidden">
         <RSVPDisplay />
         <div
           className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${
@@ -59,7 +59,7 @@ export default function Reader() {
         </div>
       </div>
       {/* Bottom half - Text */}
-      <div className="h-1/2 bg-[#1A1A1A]">
+      <div className="h-1/2 bg-surface">
         <TextPanel />
       </div>
     </div>

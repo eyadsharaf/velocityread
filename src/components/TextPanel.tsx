@@ -1,5 +1,77 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useCallback, memo } from 'react';
 import { useReaderStore } from '../store/readerStore';
+
+/** How many sentences above and below the current one to render into the DOM. */
+const SENTENCE_WINDOW = 50;
+
+type SentenceRowProps = {
+  sIdx: number;
+  sentence: string[];
+  startIdx: number;
+  isCurrent: boolean;
+  currentWordInSentence: number; // -1 if none
+  isPastSentence: boolean; // whole sentence is before the current word
+  startsNewPara: boolean;
+  registerRef: (idx: number, el: HTMLDivElement | null) => void;
+  onWordClick: (globalIdx: number) => void;
+};
+
+/**
+ * One sentence row. Memoized so it only re-renders when its own inputs change
+ * (active state / current word within it) — not on every word-tick of the whole doc.
+ */
+const SentenceRow = memo(function SentenceRow({
+  sIdx,
+  sentence,
+  startIdx,
+  isCurrent,
+  currentWordInSentence,
+  isPastSentence,
+  startsNewPara,
+  registerRef,
+  onWordClick,
+}: SentenceRowProps) {
+  return (
+    <div
+      ref={(el) => registerRef(sIdx, el)}
+      className={`rounded-md px-5 py-3 transition-colors duration-200 ${
+        isCurrent ? 'bg-white/5' : ''
+      }`}
+      style={startsNewPara ? { marginTop: '28px' } : undefined}
+    >
+      <p className="font-reader text-reader text-text-secondary text-left leading-relaxed tracking-tight">
+        {sentence.map((word, wIdx) => {
+          const gIdx = startIdx + wIdx;
+          const isCurrentWord = wIdx === currentWordInSentence;
+          const isPast = isPastSentence || gIdx < startIdx + currentWordInSentence;
+          return (
+            <span key={wIdx}>
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onWordClick(gIdx);
+                }}
+                className={`cursor-pointer transition-colors inline font-reader text-reader ${
+                  isCurrentWord
+                    ? 'text-text font-semibold'
+                    : isPast
+                    ? 'text-text-dim'
+                    : 'text-text-secondary'
+                }`}
+              >
+                {word}
+              </span>
+              {isCurrentWord && (
+                <span className="caret-blink inline-block w-[2px] h-[18px] bg-accent ml-[1px] align-middle" />
+              )}
+              {' '}
+            </span>
+          );
+        })}
+      </p>
+    </div>
+  );
+});
 
 export default function TextPanel() {
   const {
@@ -13,7 +85,7 @@ export default function TextPanel() {
   } = useReaderStore();
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const sentenceRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const sentenceRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   const isAutoScrolling = useRef(false);
   const lastSentenceIndex = useRef(-1);
 
@@ -40,7 +112,7 @@ export default function TextPanel() {
     if (currentSentenceIdx === lastSentenceIndex.current) return;
     lastSentenceIndex.current = currentSentenceIdx;
 
-    const el = sentenceRefs.current[currentSentenceIdx];
+    const el = sentenceRefs.current.get(currentSentenceIdx);
     if (!el || !scrollRef.current) return;
 
     isAutoScrolling.current = true;
@@ -63,7 +135,7 @@ export default function TextPanel() {
   const handleScroll = useCallback(() => {
     if (!doc || isAutoScrolling.current) return;
 
-    const el = sentenceRefs.current[currentSentenceIdx];
+    const el = sentenceRefs.current.get(currentSentenceIdx);
     if (!el || !scrollRef.current) return;
 
     const container = scrollRef.current;
@@ -97,77 +169,62 @@ export default function TextPanel() {
     }
   }, [userScrolledAway, setUserScrolledAway]);
 
+  // Stable ref registration callback
+  const registerRef = useCallback((idx: number, el: HTMLDivElement | null) => {
+    if (el) {
+      sentenceRefs.current.set(idx, el);
+    } else {
+      sentenceRefs.current.delete(idx);
+    }
+  }, []);
+
   if (!doc) return null;
+
+  const totalSentences = doc.sentences.length;
+  const winStart = Math.max(0, currentSentenceIdx - SENTENCE_WINDOW);
+  const winEnd = Math.min(totalSentences, currentSentenceIdx + SENTENCE_WINDOW + 1);
+
+  // Word offset of the active word within its own sentence (for highlight).
+  const activeWordInSentence = currentWord
+    ? currentIndex - (sentenceStartMap.current[currentSentenceIdx] ?? 0)
+    : -1;
+
+  const rows: React.ReactNode[] = [];
+  for (let sIdx = winStart; sIdx < winEnd; sIdx++) {
+    const sentence = doc.sentences[sIdx];
+    const startIdx = sentenceStartMap.current[sIdx] ?? 0;
+    const isCurrent = sIdx === currentSentenceIdx;
+    const startsNewPara = doc.words[startIdx]?.startsNewParagraph ?? false;
+    // Only the active sentence needs to know which word is current; others get -1
+    // so their memoized rows never re-render on word-ticks within other sentences.
+    const currentWordInSentence = isCurrent ? activeWordInSentence : -1;
+    // A sentence fully before the active word is "past" (dim all its words).
+    const isPastSentence = !isCurrent && startIdx + sentence.length <= currentIndex;
+
+    rows.push(
+      <SentenceRow
+        key={sIdx}
+        sIdx={sIdx}
+        sentence={sentence}
+        startIdx={startIdx}
+        isCurrent={isCurrent}
+        currentWordInSentence={currentWordInSentence}
+        isPastSentence={isPastSentence}
+        startsNewPara={startsNewPara}
+        registerRef={registerRef}
+        onWordClick={handleWordClick}
+      />
+    );
+  }
 
   return (
     <div
       ref={scrollRef}
       onScroll={handleScroll}
       onClick={handleContainerClick}
-      className="h-full overflow-y-auto bg-[#1A1A1A] px-[10%] py-8"
+      className="h-full overflow-y-auto bg-surface px-6 py-6 sm:px-24 sm:py-10"
     >
-      <div className="max-w-2xl mx-auto pb-[50vh] pt-[40vh]">
-        {doc.sentences.map((sentence, sIdx) => {
-          const isCurrent = sIdx === currentSentenceIdx;
-          const startIdx = sentenceStartMap.current[sIdx] ?? 0;
-          const startsNewPara = doc.words[startIdx]?.startsNewParagraph ?? false;
-
-          const sentenceEl = (
-            <div
-              key={sIdx}
-              ref={(el) => { sentenceRefs.current[sIdx] = el; }}
-              className={`rounded-lg px-4 py-2 transition-colors duration-200 ${
-                isCurrent ? 'bg-[rgba(255,255,255,0.05)]' : ''
-              }`}
-              style={startsNewPara ? { marginTop: '24px' } : undefined}
-            >
-              <p
-                style={{
-                  fontFamily: 'Georgia, serif',
-                  fontSize: '17px',
-                  lineHeight: '1.5',
-                  color: '#D0D0D0',
-                  textAlign: 'left',
-                }}
-              >
-                {sentence.map((word, wIdx) => {
-                  const gIdx = startIdx + wIdx;
-                  const isCurrentWord = gIdx === currentIndex;
-                  const isPast = gIdx < currentIndex;
-                  return (
-                    <span key={wIdx}>
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleWordClick(gIdx);
-                        }}
-                        className={`cursor-pointer transition-colors inline ${
-                          isCurrentWord
-                            ? 'text-[#FFFFFF] font-semibold'
-                            : isPast
-                            ? 'text-[#777]'
-                            : ''
-                        }`}
-                        style={{
-                          fontFamily: 'Georgia, serif',
-                          fontSize: '17px',
-                        }}
-                      >
-                        {word}
-                      </span>
-                      {isCurrentWord && (
-                        <span className="caret-blink inline-block w-[2px] h-[18px] bg-[#FF3B30] ml-[1px] align-middle" />
-                      )}
-                      {' '}
-                    </span>
-                  );
-                })}
-              </p>
-            </div>
-          );
-          return sentenceEl;
-        })}
-      </div>
+      <div className="max-w-3xl mx-auto pb-[50vh] pt-[40vh]">{rows}</div>
     </div>
   );
 }

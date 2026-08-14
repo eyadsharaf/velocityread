@@ -16,11 +16,12 @@ What *does* apply: type discipline, token discipline, restraint, and no decorati
 
 ## Color
 
-Dark-only. No light theme (see constitution Principle II). One warm amber accent — chosen
-because it reads as a reading-lamp / highlighter warmth against near-black, is instantly
-distinguishable from the neutral text ramp (important — it marks the ORP character and the
-live caret), and is **not** the generic AI red/blue/purple. The previous `#FF3B30` was an
-arbitrary AI pick and felt alarming for a calm app.
+Dark-only. No light theme (see constitution Principle II). One **controlled red** accent —
+a precise, mechanical red (`#E5484D`, hover `#FF5C5F`) that reads as an instrument/clamp
+marker against near-black, instantly distinguishable from the neutral text ramp (it marks
+the ORP character and the live caret). Red is intentionally used as a *signal*, not decor.
+The previous `#FF3B30` was an arbitrary AI pick; the interim `#E8A33C` (amber) was replaced
+per the "minimal but mechanical" direction.
 
 ### Tokens
 
@@ -34,8 +35,8 @@ arbitrary AI pick and felt alarming for a calm app.
 | `--color-text-secondary` | `#A6A6A6` | Secondary text, labels |
 | `--color-text-muted` | `#888888` | Muted (WPM readout, dim UI) |
 | `--color-text-dim` | `#6E6E6E` | Past / read words in the reading pane |
-| `--color-accent` | `#E8A33C` | ORP char, caret, progress, focus ring |
-| `--color-accent-bright` | `#F5B85C` | Hover / active on accent |
+| `--color-accent` | `#E5484D` | ORP char, caret, progress, focus ring |
+| `--color-accent-bright` | `#FF5C5F` | Hover / active on accent |
 
 These map into Tailwind v4 via `@theme` (see `src/styles/globals.css`), producing utilities
 like `bg-base`, `text-text`, `text-accent`, `border-border`. **Do not hard-code hex in
@@ -48,7 +49,7 @@ Two roles. Both are intentional and must not be casually swapped.
 | Role | Family | Where | Notes |
 | --- | --- | --- | --- |
 | **RSVP display** | `IBM Plex Sans` | Flashing word (`RSVPDisplay`) | Replaces Inter — Inter is flagged by Impeccable's `overused-font` rule (the #1 AI-slop typeface). IBM Plex Sans has real personality plus excellent single-glyph legibility, which matters when one word flashes at a time. |
-| **Reading pane** | `Georgia, serif` | Full-text reader (`TextPanel`) | A deliberate editorial serif. Universal, screen-optimized, not flagged. Optional future upgrade: Newsreader (self-hosted). |
+| **Reading pane** | `IBM Plex Mono` | Full-text reader (`TextPanel`) | The mono sibling of the RSVP/UI face — same designer, same geometry. Gives the reading pane a precise, terminal/engineered feel ("minimal but mechanical") and unifies the whole type system into one family. Tuned to 15px / relaxed line-height with `tracking-tight` for body legibility. |
 | **UI labels** | `IBM Plex Sans` | Controls, WPM, buttons | Same family as RSVP for cohesion. |
 
 Fonts are **self-hosted** via `@fontsource/*` (build-time bundled) to honor the local-first
@@ -59,7 +60,7 @@ principle — no runtime network call to a font CDN.
 | Token | Size | Use |
 | --- | --- | --- |
 | `--text-rsvp` | `56px` / weight 500, ORP char 700 | The flashing word |
-| `--text-reader` | `17px` / 1.5 line-height | Reading pane body |
+| `--text-reader` | `15px` / relaxed line-height, `tracking-tight` | Reading pane body (monospace) |
 | `--text-ui` | `14px` | Controls / labels |
 | `--text-sm` | `12px` | Minor metadata |
 
@@ -87,21 +88,25 @@ Motion must serve readability, never decorate.
 
 - Two-pane vertical split: RSVP (top 50%) + reading pane (bottom 50%).
 - Responsive: must hold at 375px width (stack testing noted in constitution Principle IV).
-- Reading pane is horizontally padded (~10%) with a centered `max-w-2xl` measure for
-  comfortable line length; large top/bottom padding so the centered sentence never sits at
-  the viewport edge.
+- Reading pane is horizontally padded (`px-8 sm:px-16`, token scale) with a centered
+  `max-w-3xl` (~768px) measure for comfortable line length; large top/bottom padding
+  (`pt-[40vh]`/`pb-[50vh]`) so the centered sentence never sits at the viewport edge.
 
-## Component Notes (current debt to retire)
+## Component Notes
 
-These are the token-migration follow-ups (do via `/speckit-implement`, not urgent):
+Token migration complete (layout pass). No component hard-codes hex, inline font
+families, or magic type sizes:
 
-1. `RSVPDisplay.tsx` — hard-coded `#121212`, `#FF3B30`, `#E0E0E0`, `#888`, `56px`, `0.42`.
-   Migrate to `bg-base`, `text-accent`, `text-text`, `text-rsvp`. Keep the 0.42 anchor as a
-   named constant (`ORP_ANCHOR_RATIO`) rather than a token.
-2. `RSVPControls.tsx` — hard-coded `#1A1A1A`, `#2A2A2A`, `#333`, `#E0E0E0`, `#888`.
-3. `TextPanel.tsx` — hard-coded `#1A1A1A`, `#D0D0D0`, `#FF3B30`, `#FFFFFF`, `#777`, inline
-   `17px` Georgia.
-4. `Reader.tsx` — hard-coded `#121212`, `#1A1A1A`.
+1. `RSVPDisplay.tsx` — `bg-base`, `text-text`, `text-accent`, `text-rsvp`; the `0.42` anchor
+   is the named constant `ORP_ANCHOR_RATIO`.
+2. `RSVPControls.tsx` — `bg-surface`, `bg-elevated`, `border-border`, `text-text`,
+   `text-text-muted`.
+3. `TextPanel.tsx` — `bg-surface`, `text-text` / `text-text-secondary` / `text-text-dim`,
+   `bg-accent`, `font-reader` + `text-reader`.
+4. `Reader.tsx` — `bg-base`, `bg-surface`.
+5. `ProgressBar.tsx` — `bg-elevated`, `bg-accent`.
+6. `EmptyState.tsx` / `DropZone.tsx` — `bg-base`, `text-text`, `text-text-muted`,
+   `text-text-dim`, `border-border`, `bg-surface`, `text-accent`.
 
 ## Anti-slop Gate
 
@@ -116,4 +121,4 @@ Inter→IBM Plex Sans swap: 0 findings.
 
 ---
 
-**Last updated**: 2026-08-03
+**Last updated**: 2026-08-07
