@@ -86,11 +86,20 @@ export default function DropZone() {
   return (
     <div className="flex flex-col items-center w-full max-w-md">
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Import a file"
         onClick={() => inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
-        className={`relative w-full border border-dashed rounded-md px-8 py-14 text-center cursor-pointer transition-colors ${
+        className={`relative w-full border border-dashed rounded-md px-8 py-12 text-center cursor-pointer transition-colors ${
           isDragging
             ? 'border-accent bg-accent/5'
             : 'border-border hover:border-text-dim hover:bg-elevated'

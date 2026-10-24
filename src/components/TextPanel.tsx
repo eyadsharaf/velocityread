@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback, memo } from 'react';
+import type { CSSProperties } from 'react';
 import { useReaderStore } from '../store/readerStore';
 
 /** How many sentences above and below the current one to render into the DOM. */
@@ -35,11 +36,11 @@ const SentenceRow = memo(function SentenceRow({
     <div
       ref={(el) => registerRef(sIdx, el)}
       className={`rounded-md px-5 py-3 transition-colors duration-200 ${
-        isCurrent ? 'bg-white/[0.08]' : ''
+        isCurrent ? 'bg-row-active' : ''
       }`}
       style={startsNewPara ? { marginTop: '28px' } : undefined}
     >
-      <p className="font-reader text-reader text-text-secondary text-left leading-relaxed tracking-tight">
+      <p className="font-reader text-reader text-text-secondary text-left tracking-tight">
         {sentence.map((word, wIdx) => {
           const gIdx = startIdx + wIdx;
           const isCurrentWord = wIdx === currentWordInSentence;
@@ -62,7 +63,7 @@ const SentenceRow = memo(function SentenceRow({
                 {word}
               </span>
               {isCurrentWord && (
-                <span className="caret-blink inline-block w-[2px] h-[15px] bg-accent ml-[1px] align-middle" />
+                <span className="caret-blink inline-block w-[2px] h-[1em] bg-accent ml-[1px] align-middle" />
               )}
               {' '}
             </span>
@@ -83,6 +84,7 @@ export default function TextPanel() {
     userScrolledAway,
     setUserScrolledAway,
   } = useReaderStore();
+  const readerFont = useReaderStore((s) => s.settings.readerFont);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentenceRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
@@ -125,7 +127,9 @@ export default function TextPanel() {
       (containerRect.height / 2) +
       (elRect.height / 2);
 
-    container.scrollTo({ top: targetScroll, behavior: 'smooth' });
+    // Honor prefers-reduced-motion: jump instead of smooth-scroll.
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    container.scrollTo({ top: targetScroll, behavior: reduced ? 'auto' : 'smooth' });
     setTimeout(() => {
       isAutoScrolling.current = false;
     }, 400);
@@ -222,9 +226,12 @@ export default function TextPanel() {
       ref={scrollRef}
       onScroll={handleScroll}
       onClick={handleContainerClick}
-      className="text-panel h-full overflow-y-auto bg-surface px-7 py-6 sm:px-24 sm:py-10"
+      className="text-panel h-full overflow-y-auto bg-surface px-6 py-6 sm:px-16 sm:py-10"
+      style={{ '--reader-font-size': `${readerFont}px` } as CSSProperties}
     >
+
       <div className="max-w-3xl mx-auto pb-[50vh] pt-[40vh]">{rows}</div>
+
     </div>
   );
 }

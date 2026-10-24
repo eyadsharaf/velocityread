@@ -1,4 +1,5 @@
 import { get, set } from 'idb-keyval';
+import type { ReaderSettings } from '../store/readerStore';
 
 /**
  * IndexedDB persistence for the last imported book + reading position.
@@ -8,6 +9,7 @@ import { get, set } from 'idb-keyval';
 
 const BOOK_KEY = 'vr:book';
 const STATE_KEY = 'vr:state';
+const SETTINGS_KEY = 'vr:settings';
 
 export interface StoredBook {
   blob: Blob;
@@ -87,6 +89,26 @@ export async function loadState(): Promise<StoredState | null> {
   if (!storageOk) return null;
   try {
     return (await get<StoredState>(STATE_KEY)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Immediate (not debounced) settings save — user preferences, low write rate. */
+export async function saveSettings(settings: ReaderSettings): Promise<void> {
+  if (!storageOk) return;
+  try {
+    await set(SETTINGS_KEY, settings);
+  } catch {
+    fail();
+  }
+}
+
+/** Raw settings read; validated/normalized by the caller (normalizeSettings). */
+export async function loadSettings(): Promise<unknown> {
+  if (!storageOk) return null;
+  try {
+    return await get(SETTINGS_KEY);
   } catch {
     return null;
   }
