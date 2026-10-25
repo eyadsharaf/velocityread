@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react';
 import { normalizeSettings, useReaderStore } from './store/readerStore';
-import EmptyState from './components/EmptyState';
+import LibraryScreen from './components/LibraryScreen';
 import Reader from './components/Reader';
+import StorageBanner from './components/StorageBanner';
 import {
   bindLifecycle,
-  loadBook,
+  getCurrentBookId,
+  loadLibrary,
   loadSettings,
-  loadState,
+  migrateLegacyBook,
+  removeLibraryBook,
+  saveProgressDebounced,
   saveSettings,
-  saveStateDebounced,
+  setCurrentBookId,
 } from './utils/persistence';
-import { parseAny } from './utils/importFile';
+import { loadBookForReading } from './utils/importFile';
 
 function LoadingScreen({ restoring }: { restoring: boolean }) {
   return (
@@ -43,10 +47,9 @@ export default function App() {
     }
   }, [theme]);
 
-  // Launch: restore settings, then the last imported book (re-parsed with the
-  // original import WPM so timing math is identical) + last position/WPM,
-  // paused, no dialogs. Settings load before setHydrated so the first paint
-  // already carries the right theme/sizes.
+  // Launch: settings → legacy migration → library → last-read book (re-parsed
+  // with the original import WPM so timing math is identical) + saved position
+  // and per-book WPM, paused, no dialogs.
   useEffect(() => {
     let cancelled = false;
     bindLifecycle();
@@ -56,32 +59,43 @@ export default function App() {
       if (storedSettings) {
         useReaderStore.setState({ settings: normalizeSettings(storedSettings) });
       }
-      const book = await loadBook();
+
+      await migrateLegacyBook();
+
+      const library = await loadLibrary();
       if (cancelled) return;
-      if (!book) {
+      useReaderStore.setState({ library });
+
+      const currentId = await getCurrentBookId();
+      if (cancelled) return;
+      if (!currentId) {
         useReaderStore.getState().setHydrated();
         return;
       }
+
       setRestoring(true);
       try {
-        const state = await loadState();
-        const file = new File([book.blob], book.fileName);
-        const parsed = await parseAny(file, book.importWpm);
+        const { doc, entry, progress } = await loadBookForReading(currentId);
         if (cancelled) return;
         const idx = Math.min(
-          state?.currentIndex ?? 0,
-          Math.max(0, parsed.words.length - 1)
+          progress?.currentIndex ?? 0,
+          Math.max(0, doc.words.length - 1)
         );
         useReaderStore.setState({
-          doc: parsed,
-          fileName: book.fileName,
+          doc,
+          fileName: entry.fileName,
+          currentBookId: entry.id,
           currentIndex: idx,
-          wpm: state?.wpm ?? book.importWpm,
+          wpm: progress?.wpm ?? entry.importWpm,
           isPlaying: false,
           userScrolledAway: false,
         });
       } catch {
-        // Unrestorable book (corrupt blob, parser change, …) → fresh state.
+        // Unrestorable book (corrupt blob, parser change, …) → drop it from
+        // the library and land on the library screen instead of a dead end.
+        const next = await removeLibraryBook(currentId);
+        if (!cancelled) useReaderStore.setState({ library: next });
+        await setCurrentBookId(null);
       } finally {
         if (!cancelled) {
           setRestoring(false);
@@ -94,8 +108,8 @@ export default function App() {
     };
   }, []);
 
-  // Debounced persistence of reading position + WPM; immediate persistence of
-  // settings (preferences, not progress — no debounce needed).
+  // Debounced per-book persistence of reading position + WPM; immediate
+  // persistence of settings (preferences, not progress — no debounce needed).
   useEffect(() => {
     const unsub = useReaderStore.subscribe((s, prev) => {
       if (s.settings !== prev.settings) {
@@ -103,19 +117,30 @@ export default function App() {
       }
       if (
         s.doc &&
+        s.currentBookId &&
         (s.currentIndex !== prev.currentIndex || s.wpm !== prev.wpm)
       ) {
-        saveStateDebounced(s.currentIndex, s.wpm);
+        saveProgressDebounced(s.currentBookId, {
+          currentIndex: s.currentIndex,
+          totalWords: s.doc.totalWords,
+          wpm: s.wpm,
+        });
       }
     });
     return unsub;
   }, []);
 
+  // Leaving the page mid-read: flush the pending per-book progress write.
+  // (bindLifecycle covers pagehide/visibilitychange; nothing more needed here.)
+
   if (!hydrated) return <LoadingScreen restoring={restoring} />;
 
   return (
-    <div className="w-full h-full">
-      {doc ? <Reader /> : <EmptyState />}
+    <div className="w-full h-full flex flex-col">
+      <StorageBanner />
+      <div className="flex-1 min-h-0">
+        {doc ? <Reader /> : <LibraryScreen />}
+      </div>
     </div>
   );
 }

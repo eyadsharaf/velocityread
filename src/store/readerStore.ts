@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ParsedDocument } from '../types';
+import type { LibraryEntry, ParsedDocument } from '../types';
 
 export type ThemeName = 'dark' | 'light';
 
@@ -12,6 +12,8 @@ export interface ReaderSettings {
   readerFont: number;
   /** Collapse the text pane for distraction-free RSVP. */
   focusMode: boolean;
+  /** Punctuation/paragraph pauses during RSVP playback (pacing algorithm). */
+  pacingPauses: boolean;
 }
 
 export const DEFAULT_SETTINGS: ReaderSettings = {
@@ -19,6 +21,7 @@ export const DEFAULT_SETTINGS: ReaderSettings = {
   rsvpScale: 1,
   readerFont: 16,
   focusMode: false,
+  pacingPauses: true,
 };
 
 const RSVP_SCALES = [0.85, 1, 1.15, 1.3];
@@ -37,6 +40,7 @@ export function normalizeSettings(raw: unknown): ReaderSettings {
     out.readerFont = r.readerFont;
   }
   if (typeof r.focusMode === 'boolean') out.focusMode = r.focusMode;
+  if (typeof r.pacingPauses === 'boolean') out.pacingPauses = r.pacingPauses;
   return out;
 }
 
@@ -46,6 +50,10 @@ interface ReaderState {
   isPlaying: boolean;
   wpm: number;
   fileName: string | null;
+  /** Library id of the open book (null when reading nothing / on library screen). */
+  currentBookId: string | null;
+  /** In-memory copy of the stored library (source of truth: IndexedDB). */
+  library: LibraryEntry[];
   userScrolledAway: boolean;
   /** True once launch-time restore has run — prevents import-screen flash. */
   hydrated: boolean;
@@ -54,7 +62,10 @@ interface ReaderState {
   settings: ReaderSettings;
 
   wakeControls: () => void;
-  setDocument: (doc: ParsedDocument, fileName: string) => void;
+  setDocument: (doc: ParsedDocument, fileName: string, bookId: string) => void;
+  setLibrary: (library: LibraryEntry[]) => void;
+  /** Leave the open book back to the library — the book stays stored + resumable. */
+  exitToLibrary: () => void;
   setCurrentIndex: (index: number) => void;
   setPlaying: (playing: boolean) => void;
   setWpm: (wpm: number) => void;
@@ -72,14 +83,36 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
   isPlaying: false,
   wpm: 350,
   fileName: null,
+  currentBookId: null,
+  library: [],
   userScrolledAway: false,
   hydrated: false,
   controlsWake: 0,
   settings: DEFAULT_SETTINGS,
 
   wakeControls: () => set((s) => ({ controlsWake: s.controlsWake + 1 })),
-  setDocument: (doc, fileName) =>
-    set({ doc, fileName, currentIndex: 0, isPlaying: false }),
+
+  setDocument: (doc, fileName, bookId) =>
+    set({
+      doc,
+      fileName,
+      currentBookId: bookId,
+      currentIndex: 0,
+      isPlaying: false,
+      userScrolledAway: false,
+    }),
+
+  setLibrary: (library) => set({ library }),
+
+  exitToLibrary: () =>
+    set({
+      doc: null,
+      currentIndex: 0,
+      isPlaying: false,
+      fileName: null,
+      currentBookId: null,
+      userScrolledAway: false,
+    }),
 
   setCurrentIndex: (index) => set({ currentIndex: index }),
 

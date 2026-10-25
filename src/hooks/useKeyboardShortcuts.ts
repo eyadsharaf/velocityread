@@ -1,7 +1,13 @@
 import { useEffect } from 'react';
 import { useReaderStore } from '../store/readerStore';
 
-export function useKeyboardShortcuts() {
+/** Optional callbacks the host screen (Reader) can supply. */
+interface ShortcutOptions {
+  /** Escape — leave the reader (host guards against open dialogs). */
+  onExit?: () => void;
+}
+
+export function useKeyboardShortcuts({ onExit }: ShortcutOptions = {}) {
   const {
     isPlaying,
     setPlaying,
@@ -19,6 +25,9 @@ export function useKeyboardShortcuts() {
 
     const handler = (e: KeyboardEvent) => {
       switch (e.code) {
+        case 'Escape':
+          onExit?.();
+          break;
         case 'Space':
           e.preventDefault();
           wakeControls();
@@ -50,5 +59,5 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [doc, isPlaying, setPlaying, rewindSentence, skipSentence, wpm, setWpm, userScrolledAway, wakeControls]);
+  }, [doc, isPlaying, setPlaying, rewindSentence, skipSentence, wpm, setWpm, userScrolledAway, wakeControls, onExit]);
 }

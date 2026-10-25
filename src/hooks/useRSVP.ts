@@ -3,11 +3,13 @@ import { useReaderStore } from '../store/readerStore';
 
 export function useRSVP() {
   const { doc, currentIndex, isPlaying, wpm, setCurrentIndex, setPlaying } = useReaderStore();
+  const pacingPauses = useReaderStore((s) => s.settings.pacingPauses);
   const rafRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
   const elapsedRef = useRef<number>(0);
   const indexRef = useRef<number>(currentIndex);
   const wpmRef = useRef<number>(wpm);
+  const pacingRef = useRef<boolean>(pacingPauses);
 
   // Keep refs in sync
   useEffect(() => {
@@ -17,6 +19,10 @@ export function useRSVP() {
   useEffect(() => {
     wpmRef.current = wpm;
   }, [wpm]);
+
+  useEffect(() => {
+    pacingRef.current = pacingPauses;
+  }, [pacingPauses]);
 
   const tick = useCallback(
     (now: number) => {
@@ -29,9 +35,10 @@ export function useRSVP() {
       if (!word) return;
 
       // Recalculate timing based on current WPM in case it changed
-      // We use the pre-computed time but scale by wpm ratio
+      // We use the pre-computed time but scale by wpm ratio.
+      // pacingPauses off → content multipliers only, no punctuation/paragraph pauses.
       const scale = 350 / wpmRef.current;
-      const targetTime = word.displayTime * scale;
+      const targetTime = (pacingRef.current ? word.displayTime : word.wordTime) * scale;
 
       if (elapsedRef.current >= targetTime) {
         elapsedRef.current = 0;

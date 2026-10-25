@@ -172,6 +172,26 @@ export default function SettingsPopover({ onClose }: { onClose: () => void }) {
           />
         </button>
       </SegRow>
+
+      <SegRow label="Pacing pauses">
+        <button
+          role="switch"
+          aria-checked={settings.pacingPauses}
+          aria-label="Pacing pauses"
+          onClick={() => updateSettings({ pacingPauses: !settings.pacingPauses })}
+          className={`relative w-10 h-6 rounded-full border transition-colors select-none ${
+            settings.pacingPauses
+              ? 'bg-accent border-accent'
+              : 'bg-surface border-border hover:border-text-dim'
+          }`}
+        >
+          <span
+            className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform ${
+              settings.pacingPauses ? 'translate-x-4 bg-white' : 'bg-text-dim'
+            }`}
+          />
+        </button>
+      </SegRow>
     </div>
   );
 }

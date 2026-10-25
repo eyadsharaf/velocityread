@@ -1,16 +1,11 @@
 import { useRef, useState, useCallback } from 'react';
 import { useReaderStore } from '../store/readerStore';
-import { parseText } from '../utils/textParser';
-import { parseMarkdown } from '../utils/markdownParser';
-import { parseEpub } from '../utils/epubParser';
-import { parsePdf } from '../utils/pdfParser';
-import { saveBook, saveStateDebounced } from '../utils/persistence';
-import type { ParsedDocument } from '../types';
+import { importAndOpen } from '../utils/importFile';
 
 const ACCEPTED = '.epub,.pdf,.txt,.md';
 
 export default function DropZone() {
-  const { setDocument, wpm } = useReaderStore();
+  const { setDocument, setLibrary, wpm } = useReaderStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,37 +16,16 @@ export default function DropZone() {
       setIsLoading(true);
       setError(null);
       try {
-        const ext = file.name.split('.').pop()?.toLowerCase();
-        let doc: ParsedDocument;
-
-        if (ext === 'epub') {
-          doc = await parseEpub(file, wpm);
-        } else if (ext === 'pdf') {
-          doc = await parsePdf(file, wpm);
-        } else if (ext === 'md' || ext === 'markdown') {
-          const text = await file.text();
-          doc = parseMarkdown(text, wpm);
-        } else {
-          const text = await file.text();
-          doc = parseText(text, wpm);
-        }
-
-        if (doc.words.length === 0) {
-          throw new Error('No readable text found in file');
-        }
-
-        setDocument(doc, file.name);
-        // Persist the imported book + initial state at index 0 (replaces any
-        // previous book — single-key store).
-        saveBook({ blob: file, fileName: file.name, importWpm: wpm });
-        saveStateDebounced(0, wpm);
+        const { doc, entry, library } = await importAndOpen(file, wpm);
+        setLibrary(library);
+        setDocument(doc, entry.fileName, entry.id);
       } catch (e: any) {
         setError(e.message || 'Failed to load file');
       } finally {
         setIsLoading(false);
       }
     },
-    [setDocument, wpm]
+    [setDocument, setLibrary, wpm]
   );
 
   const onDrop = useCallback(
@@ -128,6 +102,7 @@ export default function DropZone() {
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) handleFile(file);
+            e.target.value = '';
           }}
         />
       </div>

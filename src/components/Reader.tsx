@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useReaderStore } from '../store/readerStore';
 import { useRSVP } from '../hooks/useRSVP';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useWakeLock } from '../hooks/useWakeLock';
+import { flushProgress, setCurrentBookId } from '../utils/persistence';
 import RSVPDisplay from './RSVPDisplay';
 import RSVPControls from './RSVPControls';
 import TextPanel from './TextPanel';
@@ -10,15 +11,29 @@ import ProgressBar from './ProgressBar';
 
 export default function Reader() {
   useRSVP();
-  useKeyboardShortcuts();
   const { isPlaying, doc } = useReaderStore();
   const controlsWake = useReaderStore((s) => s.controlsWake);
   const focusMode = useReaderStore((s) => s.settings.focusMode);
-  const reset = useReaderStore((s) => s.reset);
   const [showControls, setShowControls] = useState(true);
   const [fadeTimer, setFadeTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
-  // Settings popover open state lives here: while open, controls never fade.
+  // Settings popover open state lives here: while open, controls never fade
+  // and Escape closes the popover instead of exiting.
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Leave the open book: pause, flush the pending progress write, clear the
+  // launch-restore pointer, and drop doc → back to the library. The book
+  // stays stored and resumable from its library card.
+  const exitToLibrary = useCallback(() => {
+    if (settingsOpen) return; // Escape's first job is closing the popover
+    const s = useReaderStore.getState();
+    if (!s.doc) return;
+    if (s.isPlaying) s.setPlaying(false);
+    flushProgress();
+    void setCurrentBookId(null);
+    s.exitToLibrary();
+  }, [settingsOpen]);
+
+  useKeyboardShortcuts({ onExit: exitToLibrary });
 
   // Keep the screen awake while playing
   useWakeLock(isPlaying);
@@ -77,6 +92,21 @@ export default function Reader() {
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
         <RSVPDisplay />
+        {/* Back-to-library button — rides the same fade as the controls pill */}
+        <div
+          className={`absolute left-0 z-20 controls-fade ${
+            showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)', left: '16px' }}
+        >
+          <button
+            onClick={exitToLibrary}
+            aria-label="Back to library"
+            className="text-sm font-mono text-text-secondary hover:text-text transition-colors select-none px-1"
+          >
+            ‹ Library
+          </button>
+        </div>
         {/* z-20 keeps the pill clickable above the z-10 "Tap to resume" overlay */}
         <div
           className={`absolute inset-0 z-20 pointer-events-none controls-fade ${
