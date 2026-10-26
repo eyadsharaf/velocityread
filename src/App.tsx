@@ -13,16 +13,15 @@ import {
   saveProgressDebounced,
   saveSettings,
   setCurrentBookId,
+  sweepOrphans,
 } from './utils/persistence';
-import { loadBookForReading } from './utils/importFile';
+import { loadBookForReading, BookNotFoundError, BookDataMissingError } from './utils/importFile';
+import Spinner from './components/Spinner';
 
 function LoadingScreen({ restoring }: { restoring: boolean }) {
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-base">
-      <div className="w-6 h-6 rounded-full border-2 border-border border-t-accent animate-spin" />
-      <div className="text-text-muted text-sm font-mono">
-        {restoring ? 'Restoring last book…' : 'Loading…'}
-      </div>
+    <div className="w-full h-full flex flex-col items-center justify-center bg-base">
+      <Spinner label={restoring ? 'Restoring last book…' : 'Loading…'} />
     </div>
   );
 }
@@ -65,6 +64,7 @@ export default function App() {
       const library = await loadLibrary();
       if (cancelled) return;
       useReaderStore.setState({ library });
+      void sweepOrphans(library);
 
       const currentId = await getCurrentBookId();
       if (cancelled) return;
@@ -77,25 +77,28 @@ export default function App() {
       try {
         const { doc, entry, progress } = await loadBookForReading(currentId);
         if (cancelled) return;
-        const idx = Math.min(
-          progress?.currentIndex ?? 0,
-          Math.max(0, doc.words.length - 1)
-        );
-        useReaderStore.setState({
-          doc,
-          fileName: entry.fileName,
-          currentBookId: entry.id,
-          currentIndex: idx,
+        useReaderStore.getState().openBook(doc, entry.fileName, entry.id, {
+          index: progress?.currentIndex ?? 0,
           wpm: progress?.wpm ?? entry.importWpm,
-          isPlaying: false,
-          userScrolledAway: false,
         });
-      } catch {
-        // Unrestorable book (corrupt blob, parser change, …) → drop it from
-        // the library and land on the library screen instead of a dead end.
-        const next = await removeLibraryBook(currentId);
-        if (!cancelled) useReaderStore.setState({ library: next });
-        await setCurrentBookId(null);
+      } catch (e) {
+        // Only prune when the stored data is genuinely gone. Transient
+        // failures (parser regression, chunk load, launch race) keep the
+        // book and surface the error — never destroy a user's library
+        // over a possibly-recoverable error.
+        if (e instanceof BookNotFoundError || e instanceof BookDataMissingError) {
+          if (cancelled) return;
+          const next = await removeLibraryBook(currentId);
+          if (!cancelled) useReaderStore.setState({ library: next });
+          await setCurrentBookId(null);
+        } else {
+          const msg =
+            e instanceof Error ? e.message : 'Could not restore last book';
+          if (!cancelled) {
+            useReaderStore.setState({ restoreError: msg });
+          }
+          await setCurrentBookId(null);
+        }
       } finally {
         if (!cancelled) {
           setRestoring(false);

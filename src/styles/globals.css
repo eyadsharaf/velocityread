@@ -176,15 +176,6 @@ body {
   animation: blink 1s infinite;
 }
 
-@keyframes fadeInOut {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.fade-in {
-  animation: fadeInOut 0.3s ease-in-out;
-}
-
 /* WPM label pulse — replays on every wpm change (span is keyed by wpm) */
 @keyframes wpmPulse {
   40% { transform: scale(1.1); color: var(--color-accent); }
@@ -197,8 +188,7 @@ body {
 /* Reduced motion: kill decorative/looping animation, make fades instant */
 @media (prefers-reduced-motion: reduce) {
   .caret-blink,
-  .wpm-pulse,
-  .fade-in {
+  .wpm-pulse {
     animation: none;
   }
   .controls-fade {

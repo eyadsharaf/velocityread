@@ -47,6 +47,39 @@ function SegRow({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+function ToggleRow({
+  label,
+  checked,
+  onToggle,
+}: {
+  label: string;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-text-muted text-sm select-none">{label}</span>
+      <button
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={onToggle}
+        className={`relative w-10 h-6 rounded-full border transition-colors select-none ${
+          checked
+            ? 'bg-accent border-accent'
+            : 'bg-surface border-border hover:border-text-dim'
+        }`}
+      >
+        <span
+          className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform ${
+            checked ? 'translate-x-4 bg-white' : 'bg-text-dim'
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
 export default function SettingsPopover({ onClose }: { onClose: () => void }) {
   const settings = useReaderStore((s) => s.settings);
   const updateSettings = useReaderStore((s) => s.updateSettings);
@@ -153,45 +186,17 @@ export default function SettingsPopover({ onClose }: { onClose: () => void }) {
         </SegButton>
       </SegRow>
 
-      <SegRow label="Focus mode">
-        <button
-          role="switch"
-          aria-checked={settings.focusMode}
-          aria-label="Focus mode"
-          onClick={() => updateSettings({ focusMode: !settings.focusMode })}
-          className={`relative w-10 h-6 rounded-full border transition-colors select-none ${
-            settings.focusMode
-              ? 'bg-accent border-accent'
-              : 'bg-surface border-border hover:border-text-dim'
-          }`}
-        >
-          <span
-            className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform ${
-              settings.focusMode ? 'translate-x-4 bg-white' : 'bg-text-dim'
-            }`}
-          />
-        </button>
-      </SegRow>
+      <ToggleRow
+        label="Focus mode"
+        checked={settings.focusMode}
+        onToggle={() => updateSettings({ focusMode: !settings.focusMode })}
+      />
 
-      <SegRow label="Pacing pauses">
-        <button
-          role="switch"
-          aria-checked={settings.pacingPauses}
-          aria-label="Pacing pauses"
-          onClick={() => updateSettings({ pacingPauses: !settings.pacingPauses })}
-          className={`relative w-10 h-6 rounded-full border transition-colors select-none ${
-            settings.pacingPauses
-              ? 'bg-accent border-accent'
-              : 'bg-surface border-border hover:border-text-dim'
-          }`}
-        >
-          <span
-            className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform ${
-              settings.pacingPauses ? 'translate-x-4 bg-white' : 'bg-text-dim'
-            }`}
-          />
-        </button>
-      </SegRow>
+      <ToggleRow
+        label="Pacing pauses"
+        checked={settings.pacingPauses}
+        onToggle={() => updateSettings({ pacingPauses: !settings.pacingPauses })}
+      />
     </div>
   );
 }

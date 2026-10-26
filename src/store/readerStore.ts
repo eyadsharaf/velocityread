@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { LibraryEntry, ParsedDocument } from '../types';
 
-export type ThemeName = 'dark' | 'light';
+type ThemeName = 'dark' | 'light';
 
 export interface ReaderSettings {
   /** Color theme. Dark is the default (constitution Principle II, Amendment v1.1.0). */
@@ -16,7 +16,7 @@ export interface ReaderSettings {
   pacingPauses: boolean;
 }
 
-export const DEFAULT_SETTINGS: ReaderSettings = {
+const DEFAULT_SETTINGS: ReaderSettings = {
   theme: 'dark',
   rsvpScale: 1,
   readerFont: 16,
@@ -55,6 +55,8 @@ interface ReaderState {
   /** In-memory copy of the stored library (source of truth: IndexedDB). */
   library: LibraryEntry[];
   userScrolledAway: boolean;
+  /** Set when launch restore failed but the book was kept (retryable). */
+  restoreError: string | null;
   /** True once launch-time restore has run — prevents import-screen flash. */
   hydrated: boolean;
   /** Incremented by keyboard shortcuts so the controls fade timer resets. */
@@ -66,15 +68,25 @@ interface ReaderState {
   setLibrary: (library: LibraryEntry[]) => void;
   /** Leave the open book back to the library — the book stays stored + resumable. */
   exitToLibrary: () => void;
+  /**
+   * Open a parsed book (library tap or launch restore): clamp the saved index
+   * into range, restore per-book WPM, paused, no dialogs.
+   */
+  openBook: (
+    doc: ParsedDocument,
+    fileName: string,
+    bookId: string,
+    restore: { index: number; wpm: number }
+  ) => void;
   setCurrentIndex: (index: number) => void;
   setPlaying: (playing: boolean) => void;
   setWpm: (wpm: number) => void;
   setUserScrolledAway: (away: boolean) => void;
+  setRestoreError: (msg: string | null) => void;
   setHydrated: () => void;
   updateSettings: (patch: Partial<ReaderSettings>) => void;
   rewindSentence: () => void;
   skipSentence: () => void;
-  reset: () => void;
 }
 
 export const useReaderStore = create<ReaderState>((set, get) => ({
@@ -86,6 +98,7 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
   currentBookId: null,
   library: [],
   userScrolledAway: false,
+  restoreError: null,
   hydrated: false,
   controlsWake: 0,
   settings: DEFAULT_SETTINGS,
@@ -114,6 +127,20 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
       userScrolledAway: false,
     }),
 
+  openBook: (doc, fileName, bookId, restore) =>
+    set({
+      doc,
+      fileName,
+      currentBookId: bookId,
+      currentIndex: Math.min(
+        restore.index,
+        Math.max(0, doc.words.length - 1)
+      ),
+      wpm: restore.wpm,
+      isPlaying: false,
+      userScrolledAway: false,
+    }),
+
   setCurrentIndex: (index) => set({ currentIndex: index }),
 
   setPlaying: (playing) => set({ isPlaying: playing }),
@@ -124,6 +151,8 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
   },
 
   setUserScrolledAway: (away) => set({ userScrolledAway: away }),
+
+  setRestoreError: (msg) => set({ restoreError: msg }),
 
   updateSettings: (patch) =>
     set((s) => {
@@ -169,9 +198,6 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
       set({ currentIndex: doc.words.length - 1 });
     }
   },
-
-  reset: () =>
-    set({ doc: null, currentIndex: 0, isPlaying: false, fileName: null, userScrolledAway: false }),
 
   setHydrated: () => set({ hydrated: true }),
 }));

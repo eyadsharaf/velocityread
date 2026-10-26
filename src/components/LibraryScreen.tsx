@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReaderStore } from '../store/readerStore';
 import EmptyState from './EmptyState';
 import InstallHint from './InstallHint';
-import { importAndOpen, loadBookForReading } from '../utils/importFile';
+import { ACCEPTED_FILES, importAndOpen, loadBookForReading } from '../utils/importFile';
 import {
   loadLibrary,
   loadProgress,
@@ -10,8 +10,6 @@ import {
   setCurrentBookId,
   type StoredProgress,
 } from '../utils/persistence';
-
-const ACCEPTED = '.epub,.pdf,.txt,.md';
 
 function timeAgo(ts: number): string {
   const s = Math.floor((Date.now() - ts) / 1000);
@@ -37,6 +35,8 @@ export default function LibraryScreen() {
   const library = useReaderStore((s) => s.library);
   const setLibrary = useReaderStore((s) => s.setLibrary);
   const setDocument = useReaderStore((s) => s.setDocument);
+  const restoreError = useReaderStore((s) => s.restoreError);
+  const setRestoreError = useReaderStore((s) => s.setRestoreError);
 
   const [progressMap, setProgressMap] = useState<Record<string, StoredProgress>>({});
   const [openingId, setOpeningId] = useState<string | null>(null);
@@ -58,21 +58,31 @@ export default function LibraryScreen() {
     };
   }, []);
 
-  // Fetch per-book progress for the cards (IndexedDB reads; cheap).
+  // Fetch per-book progress for the cards (parallel IndexedDB reads).
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      const pairs = await Promise.all(
+        library.map(async (e) => {
+          const p = await loadProgress(e.id);
+          return [e.id, p] as const;
+        })
+      );
       const map: Record<string, StoredProgress> = {};
-      for (const e of library) {
-        const p = await loadProgress(e.id);
-        if (p) map[e.id] = p;
-      }
+      for (const [id, p] of pairs) if (p) map[id] = p;
       if (!cancelled) setProgressMap(map);
     })();
     return () => {
       cancelled = true;
     };
   }, [library]);
+
+  // Two-step delete auto-disarms after 3s so a stray armed state can't linger.
+  useEffect(() => {
+    if (!armedId) return;
+    const t = setTimeout(() => setArmedId(null), 3000);
+    return () => clearTimeout(t);
+  }, [armedId]);
 
   const openBook = useCallback(
     async (id: string) => {
@@ -81,25 +91,18 @@ export default function LibraryScreen() {
       try {
         const { doc, entry, progress } = await loadBookForReading(id);
         await setCurrentBookId(id);
-        useReaderStore.setState({
-          doc,
-          fileName: entry.fileName,
-          currentBookId: id,
-          currentIndex: Math.min(
-            progress?.currentIndex ?? 0,
-            Math.max(0, doc.words.length - 1)
-          ),
+        useReaderStore.getState().openBook(doc, entry.fileName, id, {
+          index: progress?.currentIndex ?? 0,
           wpm: progress?.wpm ?? entry.importWpm,
-          isPlaying: false,
-          userScrolledAway: false,
         });
-      } catch (e: any) {
-        setError(e?.message || 'Could not open book');
+        setRestoreError(null);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Could not open book');
       } finally {
         setOpeningId(null);
       }
     },
-    []
+    [setRestoreError]
   );
 
   const handleImport = useCallback(
@@ -111,13 +114,14 @@ export default function LibraryScreen() {
         const { doc, entry, library } = await importAndOpen(file, wpm);
         setLibrary(library);
         setDocument(doc, entry.fileName, entry.id);
-      } catch (e: any) {
-        setError(e?.message || 'Failed to load file');
+        setRestoreError(null);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to load file');
       } finally {
         setImporting(false);
       }
     },
-    [setLibrary, setDocument]
+    [setLibrary, setDocument, setRestoreError]
   );
 
   const deleteBook = useCallback(
@@ -163,7 +167,7 @@ export default function LibraryScreen() {
           <input
             ref={inputRef}
             type="file"
-            accept={ACCEPTED}
+            accept={ACCEPTED_FILES}
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -173,8 +177,14 @@ export default function LibraryScreen() {
           />
         </header>
 
-        {error && (
-          <div className="mb-4 text-accent text-sm font-mono">{error}</div>
+        {(error || restoreError) && (
+          <div
+            role="alert"
+            className="mb-4 text-accent text-sm font-mono"
+          >
+            {error ??
+              `Couldn't restore your last book (${restoreError}) — it's still in the library below.`}
+          </div>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -188,56 +198,36 @@ export default function LibraryScreen() {
             const isOpening = openingId === entry.id;
 
             return (
-              <div
+              <article
                 key={entry.id}
-                role="button"
-                tabIndex={0}
-                aria-label={`Open ${entry.fileName}`}
-                onClick={() => {
-                  if (!isOpening) void openBook(entry.id);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    if (!isOpening) void openBook(entry.id);
-                  }
-                }}
-                className={`relative rounded-md border border-border bg-surface px-5 py-4 cursor-pointer transition-colors hover:border-text-dim hover:bg-elevated ${
-                  isOpening ? 'opacity-60 pointer-events-none' : ''
+                className={`relative rounded-md border border-border bg-surface transition-colors hover:border-text-dim hover:bg-elevated ${
+                  isOpening ? 'opacity-60' : ''
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-text-muted text-xs font-mono tracking-widest uppercase">
-                    {typeOf(entry.fileName)}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isArmed) void deleteBook(entry.id);
-                      else setArmedId(entry.id);
-                    }}
-                    onBlur={() => {
-                      if (isArmed) setArmedId(null);
-                    }}
-                    aria-label={isArmed ? 'Confirm delete' : 'Delete book'}
-                    className={`text-sm font-mono transition-colors select-none ${
-                      isArmed
-                        ? 'text-accent'
-                        : 'text-text-muted hover:text-text'
-                    }`}
-                  >
-                    {isArmed ? 'delete?' : '×'}
-                  </button>
-                </div>
+                {/* Open affordance — one button, no nested interactives.
+                    Delete sits outside it (absolute, top-right). */}
+                <button
+                  onClick={() => {
+                    if (!isOpening) void openBook(entry.id);
+                  }}
+                  disabled={isOpening}
+                  aria-label={`Open ${entry.fileName}`}
+                  className="w-full text-left px-5 py-4 cursor-pointer"
+                >
+                  <div className="flex items-center mb-2 pr-8">
+                    <span className="text-text-muted text-xs font-mono tracking-widest uppercase">
+                      {typeOf(entry.fileName)}
+                    </span>
+                  </div>
 
-                <div className="text-text font-semibold tracking-tight font-sans truncate pr-4">
-                  {isOpening ? 'Opening…' : titleOf(entry.fileName)}
-                </div>
+                  <div className="text-text font-semibold tracking-tight font-sans truncate pr-4">
+                    {isOpening ? 'Opening…' : titleOf(entry.fileName)}
+                  </div>
 
-                <div className="mt-3">
-                  <div className="h-[3px] rounded-full bg-elevated overflow-hidden">
-                    <div
-                      className="h-full bg-accent transition-[width] duration-200"
+                  <div className="mt-3">
+                    <div className="h-[3px] rounded-full bg-elevated overflow-hidden">
+                      <div
+                        className="h-full bg-accent transition-[width] duration-200"
                       style={{ width: `${pct ?? 0}%` }}
                     />
                   </div>
@@ -252,7 +242,24 @@ export default function LibraryScreen() {
                     <span>{timeAgo(entry.lastReadAt)}</span>
                   </div>
                 </div>
-              </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (isArmed) void deleteBook(entry.id);
+                    else setArmedId(entry.id);
+                  }}
+                  onBlur={() => {
+                    if (isArmed) setArmedId(null);
+                  }}
+                  aria-label={isArmed ? 'Confirm delete' : 'Delete book'}
+                  className={`absolute top-4 right-4 text-sm font-mono transition-colors select-none ${
+                    isArmed ? 'text-accent' : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  {isArmed ? 'delete?' : '×'}
+                </button>
+              </article>
             );
           })}
         </div>

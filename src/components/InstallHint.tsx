@@ -12,7 +12,13 @@ function isStandalone(): boolean {
 }
 
 function isMobile(): boolean {
-  return /Mobi|iPhone|iPad|Android/i.test(window.navigator.userAgent);
+  if (typeof window === 'undefined') return false;
+  const ua = window.navigator.userAgent;
+  // iPadOS 13+ reports as desktop Mac — maxTouchPoints catches it.
+  return (
+    /Mobi|iPhone|Android/i.test(ua) ||
+    (navigator.maxTouchPoints > 1 && /Macintosh/i.test(ua))
+  );
 }
 
 /**

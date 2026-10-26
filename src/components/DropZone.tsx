@@ -1,8 +1,7 @@
 import { useRef, useState, useCallback } from 'react';
 import { useReaderStore } from '../store/readerStore';
-import { importAndOpen } from '../utils/importFile';
-
-const ACCEPTED = '.epub,.pdf,.txt,.md';
+import Spinner from './Spinner';
+import { ACCEPTED_FILES, importAndOpen } from '../utils/importFile';
 
 export default function DropZone() {
   const { setDocument, setLibrary, wpm } = useReaderStore();
@@ -49,12 +48,7 @@ export default function DropZone() {
   }, []);
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-6 h-6 rounded-full border-2 border-border border-t-accent animate-spin" />
-        <div className="text-text-muted text-sm font-mono">Loading…</div>
-      </div>
-    );
+    return <Spinner label="Loading…" />;
   }
 
   return (
@@ -97,7 +91,7 @@ export default function DropZone() {
         <input
           ref={inputRef}
           type="file"
-          accept={ACCEPTED}
+          accept={ACCEPTED_FILES}
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];

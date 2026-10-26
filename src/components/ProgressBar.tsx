@@ -1,4 +1,3 @@
-import { useRef, useEffect, useState } from 'react';
 import { useReaderStore } from '../store/readerStore';
 
 export default function ProgressBar() {

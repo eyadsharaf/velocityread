@@ -77,7 +77,6 @@ export default function TextPanel() {
   const {
     doc,
     currentIndex,
-    isPlaying,
     setPlaying,
     setCurrentIndex,
     userScrolledAway,

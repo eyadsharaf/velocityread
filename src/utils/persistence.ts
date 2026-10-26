@@ -1,4 +1,4 @@
-import { get, set, del } from 'idb-keyval';
+import { get, set, del, keys } from 'idb-keyval';
 import type { LibraryEntry } from '../types';
 import type { ReaderSettings } from '../store/readerStore';
 
@@ -260,6 +260,13 @@ export async function migrateLegacyBook(): Promise<void> {
     const legacy = await get<StoredBlob>(LEGACY_BOOK_KEY);
     if (!legacy) return;
 
+    // Read everything into memory first, then delete the legacy keys
+    // IMMEDIATELY — a crash mid-migration can then never re-run it and
+    // create duplicate library entries (idempotency by removal).
+    const state = await get<LegacyState>(LEGACY_STATE_KEY);
+    await del(LEGACY_BOOK_KEY);
+    await del(LEGACY_STATE_KEY);
+
     const id = newId();
     const now = Date.now();
     const entry: LibraryEntry = {
@@ -275,7 +282,6 @@ export async function migrateLegacyBook(): Promise<void> {
     await saveLibrary(library);
     await saveBookBlob(id, legacy);
 
-    const state = await get<LegacyState>(LEGACY_STATE_KEY);
     if (state) {
       // totalWords unknown until first open — App clamps the index on restore.
       await writeProgress(id, {
@@ -286,10 +292,36 @@ export async function migrateLegacyBook(): Promise<void> {
     }
 
     await setCurrentBookId(id);
-    await del(LEGACY_BOOK_KEY);
-    await del(LEGACY_STATE_KEY);
   } catch {
     fail();
+  }
+}
+
+// --- Orphan sweep ---
+
+/**
+ * Delete blob/progress records whose book id has no library entry. These
+ * accumulate if a `removeLibraryBook` write ever fails partway. Cheap
+ * key enumeration; called once at launch.
+ */
+export async function sweepOrphans(library: LibraryEntry[]): Promise<void> {
+  if (!storageOk) return;
+  try {
+    const allKeys = await keys();
+    const live = new Set(library.map((e) => e.id));
+    for (const k of allKeys) {
+      if (typeof k !== 'string') continue;
+      const blobMatch = k.startsWith(BLOB_PREFIX)
+        ? k.slice(BLOB_PREFIX.length)
+        : k.startsWith(PROGRESS_PREFIX)
+        ? k.slice(PROGRESS_PREFIX.length)
+        : null;
+      if (blobMatch && !live.has(blobMatch)) {
+        await del(k);
+      }
+    }
+  } catch {
+    // Sweeping is best-effort; a failure here must not block launch.
   }
 }
 

@@ -22,11 +22,6 @@ export interface ParsedDocument {
   totalWords: number;
 }
 
-export interface Sentence {
-  words: string[];
-  startIndex: number;
-}
-
 /** One book in the library — small metadata; the file blob lives under its own key. */
 export interface LibraryEntry {
   id: string;

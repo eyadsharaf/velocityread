@@ -10,7 +10,6 @@ export function parseText(rawText: string, baseWPM: number = 350): ParsedDocumen
   const words: TimedWord[] = [];
   const sentences: string[][] = [];
   const paragraphGroups: number[][] = [];
-  let globalWordIndex = 0;
   let seenParagraph = false;
 
   for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
@@ -20,9 +19,11 @@ export function parseText(rawText: string, baseWPM: number = 350): ParsedDocumen
     // Split into sentences at whitespace that follows sentence-ending
     // punctuation. Implemented with a sentinel replace instead of regex
     // lookbehind — lookbehind is a parse-time syntax error on Safari ≤16.3,
-    // which would white-screen the whole bundle. Requiring whitespace keeps
+    // which would white-screen the whole bundle. The sentinel is a private-
+    // use codepoint: it can never occur in real text (unlike NUL, which
+    // survives into some corrupt txt dumps). Requiring whitespace keeps
     // intra-word punctuation intact ("3.5", "U.S.A.", "?!").
-    const rawSentences = para.replace(/([.!?])\s+/g, '$1\u0000').split('\u0000');
+    const rawSentences = para.replace(/([.!?])\s+/g, '$1\uE000').split('\uE000');
 
     // Index of the last non-empty sentence — its final word takes the
     // paragraph pause (instead of stacking it onto the next paragraph's
@@ -70,7 +71,6 @@ export function parseText(rawText: string, baseWPM: number = 350): ParsedDocumen
           sentenceLength: sentenceWords.length,
           isMidSentence,
         });
-        globalWordIndex++;
       }
     }
 

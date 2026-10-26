@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useReaderStore } from '../store/readerStore';
+import { TIMING_BASE_WPM } from '../utils/importFile';
 
 export function useRSVP() {
   const { doc, currentIndex, isPlaying, wpm, setCurrentIndex, setPlaying } = useReaderStore();
@@ -34,10 +35,10 @@ export function useRSVP() {
       const word = doc.words[indexRef.current];
       if (!word) return;
 
-      // Recalculate timing based on current WPM in case it changed
-      // We use the pre-computed time but scale by wpm ratio.
-      // pacingPauses off → content multipliers only, no punctuation/paragraph pauses.
-      const scale = 350 / wpmRef.current;
+      // Recalculate timing based on current WPM in case it changed.
+      // Timing is always computed at TIMING_BASE_WPM (see importFile), so
+      // this ratio is exact. pacingPauses off → content multipliers only.
+      const scale = TIMING_BASE_WPM / wpmRef.current;
       const targetTime = (pacingRef.current ? word.displayTime : word.wordTime) * scale;
 
       if (elapsedRef.current >= targetTime) {
