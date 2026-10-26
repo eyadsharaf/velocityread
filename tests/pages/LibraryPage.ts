@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -92,9 +93,7 @@ export class LibraryPage {
   }
 }
 
-/** Read a file as base64 inside the Node side of the evaluate boundary. */
+/** Read a file as base64 for transport across the evaluate boundary. */
 function b64encode(path: string): string {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const fs = require('node:fs') as typeof import('node:fs')
-  return fs.readFileSync(path).toString('base64')
+  return readFileSync(path).toString('base64')
 }

@@ -41,7 +41,7 @@ This is a **bold statement** with a [link](https://example.com) and some \`inlin
 
 A plain closing paragraph with a final sentence and terminal punctuation.
 `;
-writeFileSync(join(FIXTURES_DIR, 'sample.md'), sampleMd, 'utf8');
+writeFileSync(join(FIXTURES_DIR, 'journey.md'), sampleMd, 'utf8');
 
 // --- empty.txt --------------------------------------------------------------
 writeFileSync(join(FIXTURES_DIR, 'empty.txt'), '', 'utf8');

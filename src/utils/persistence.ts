@@ -27,7 +27,8 @@ const LEGACY_BOOK_KEY = 'vr:book';
 const LEGACY_STATE_KEY = 'vr:state';
 
 export interface StoredBlob {
-  blob: Blob;
+  /** Book bytes. Stored as ArrayBuffer — WebKit's IDB cannot clone File objects. */
+  blob: Blob | ArrayBuffer;
   fileName: string;
   importWpm: number;
 }
@@ -106,7 +107,12 @@ export async function saveLibrary(entries: LibraryEntry[]): Promise<void> {
 export async function saveBookBlob(id: string, book: StoredBlob): Promise<void> {
   if (!storageOk) return;
   try {
-    await set(BLOB_PREFIX + id, book);
+    // WebKit's IndexedDB aborts the transaction when structuring-cloning a
+    // File object (imported files hit this on every Safari save, which
+    // flipped storage to "unavailable"). Store raw bytes instead —
+    // `new File([arrayBuffer], name)` reconstructs it identically on read.
+    const blob = book.blob instanceof Blob ? await book.blob.arrayBuffer() : book.blob;
+    await set(BLOB_PREFIX + id, { ...book, blob });
   } catch {
     fail();
   }
