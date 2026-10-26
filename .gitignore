@@ -36,3 +36,11 @@ __pycache__/
 
 # Spec Kit
 .specify/
+
+# Agent workflow tooling — kept local, not part of the product repo
+.cursor/
+.clinerules/
+.specify/
+.kilo/
+.opencode/
+docs/DELETION_LOG.md
