@@ -17,7 +17,8 @@ export default function EmptyState() {
       const { doc, entry, library } = await importAndOpen(sampleFile(), wpm);
       setLibrary(library);
       setDocument(doc, entry.fileName, entry.id);
-    } catch {
+    } catch (e) {
+      console.error('Failed to open sample', e);
       setLoadingSample(false);
     }
   };
