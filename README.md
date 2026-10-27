@@ -22,6 +22,7 @@ VelocityRead starts from the evidence instead:
 - **Pacing engine** with punctuation-aware pauses — toggle it off and feel the difference
 - **Reading pane** rendered paragraph-true to your source file, live-synced to the current word
 - **Multi-book library** — each book remembers its position and your speed for it
+- **Built-in sample essay** — tap "read the sample" on the empty screen, no file needed
 - **Works offline** — install it as a PWA; books are stored in your browser (IndexedDB), never uploaded
 - **Formats**: EPUB · PDF · TXT · MD
 

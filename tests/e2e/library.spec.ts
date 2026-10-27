@@ -113,3 +113,32 @@ test.describe('Feature: Library Management', () => {
     await expect(library.page.locator('article').first()).toContainText('TXT')
   })
 })
+
+test.describe('Feature: Built-in Sample', () => {
+  let library: LibraryPage
+  let reader: ReaderPage
+
+  test.beforeEach(async ({ page }) => {
+    library = new LibraryPage(page)
+    reader = new ReaderPage(page)
+    await library.goto()
+    await library.expectEmptyState()
+  })
+
+  test('should open the built-in sample from the empty state', async () => {
+    await library.page.getByRole('button', { name: 'read the sample' }).click()
+
+    // First word of the essay, parsed and playing through the reader.
+    await reader.expectOpen('You')
+    await expect(reader.textPanel).toBeVisible()
+
+    // It is a real library book: MD badge, listed, and reopenable.
+    await reader.backToLibrary.click()
+    await library.expectLibraryCount(1)
+    await expect(
+      library.card('On Reading Faster.md').getByText('MD', { exact: true })
+    ).toBeVisible()
+    await library.openBook('On Reading Faster.md')
+    await reader.expectOpen('You')
+  })
+})
