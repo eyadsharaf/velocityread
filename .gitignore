@@ -34,9 +34,6 @@ __pycache__/
 .python-version
 .impeccable/
 
-# Spec Kit
-.specify/
-
 # Agent workflow tooling — kept local, not part of the product repo
 .claude/
 .cursor/

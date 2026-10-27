@@ -19,6 +19,7 @@ export default defineConfig({
         'icons/icon-maskable-512.png',
       ],
       manifest: {
+        id: '/',
         name: 'VelocityRead',
         short_name: 'VelocityRead',
         description: 'RSVP speed reader',
