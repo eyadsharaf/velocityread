@@ -38,9 +38,13 @@ __pycache__/
 .specify/
 
 # Agent workflow tooling — kept local, not part of the product repo
+.claude/
 .cursor/
 .clinerules/
 .specify/
 .kilo/
 .opencode/
 docs/DELETION_LOG.md
+docs/competitive/
+scripts/gen-impeccable-commands.mjs
+.vercel/
