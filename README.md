@@ -2,6 +2,8 @@
 
 A speed reader that pauses at commas.
 
+**Try it: <https://velocityread-beta.vercel.app>** — free, no account, works offline.
+
 VelocityRead is a free, offline RSVP (rapid serial visual presentation) reader. Words flash at your pace while the full document stays in view below — so you read faster without reading worse.
 
 ## Why

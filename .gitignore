@@ -48,3 +48,4 @@ docs/DELETION_LOG.md
 docs/competitive/
 scripts/gen-impeccable-commands.mjs
 .vercel/
+.env*
