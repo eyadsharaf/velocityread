@@ -112,7 +112,7 @@ export default function SettingsPopover({ onClose }: { onClose: () => void }) {
       ref={ref}
       role="dialog"
       aria-label="Settings"
-      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-[280px] p-4 flex flex-col gap-4 rounded-lg bg-elevated border border-border shadow-[0_4px_16px_rgba(0,0,0,0.35)]"
+      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[280px] max-h-[60dvh] overflow-y-auto p-4 flex flex-col gap-4 rounded-lg bg-elevated border border-border shadow-[0_4px_16px_rgba(0,0,0,0.35)] min-[430px]:top-auto min-[430px]:bottom-full min-[430px]:mt-0 min-[430px]:mb-3"
     >
       <SegRow label="Theme">
         <SegButton

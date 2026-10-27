@@ -75,4 +75,24 @@ test.describe('Feature: Mobile Layout (375px)', () => {
       expect(box!.x + box!.width).toBeLessThanOrEqual(375)
     }
   })
+
+  test('should keep the settings popover fully on screen at 375px', async ({ page }) => {
+    await library.importFile('sample.txt')
+    await reader.expectOpen('The')
+
+    // On mobile the popover opens downward over the reading pane — the
+    // first row (Theme) must not clip off the top of the viewport.
+    await reader.openSettings()
+    const theme = page.getByRole('button', { name: 'Dark theme' })
+    await expect(theme).toBeVisible()
+    const box = await theme.boundingBox()
+    expect(box, 'theme row has a box').not.toBeNull()
+    expect(box!.y).toBeGreaterThanOrEqual(0)
+
+    // ...and the last row (Pacing pauses) must not clip off the bottom.
+    const pacing = page.getByRole('switch', { name: 'Pacing pauses' })
+    const pacingBox = await pacing.boundingBox()
+    expect(pacingBox, 'pacing row has a box').not.toBeNull()
+    expect(pacingBox!.y + pacingBox!.height).toBeLessThanOrEqual(667)
+  })
 })

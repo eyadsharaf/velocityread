@@ -156,10 +156,13 @@ export default function RSVPControls({ settingsOpen, onOpenChange }: Props) {
 
         {settingsOpen && <SettingsPopover onClose={() => onOpenChange(false)} />}
 
-        {/* Keyboard hint — fades with the pill (same wrapper opacity transition) */}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 whitespace-nowrap pointer-events-none text-text-muted text-sm select-none">
-          space play · ← → sentence · ↑ ↓ speed
-        </div>
+        {/* Keyboard hint — fades with the pill (same wrapper opacity transition).
+            Hidden while settings is open (popover would overlap it on mobile). */}
+        {!settingsOpen && (
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 whitespace-nowrap pointer-events-none text-text-muted text-sm select-none">
+            space play · ← → sentence · ↑ ↓ speed
+          </div>
+        )}
       </div>
     </div>
   );
