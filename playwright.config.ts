@@ -3,12 +3,12 @@ import { defineConfig, devices } from '@playwright/test'
 /**
  * VelocityRead E2E configuration.
  *
- * The Vite dev server serves the app under the `/velocityread/` base path
+ * The Vite dev server serves the app under the `/` base path
  * (see vite.config.ts `base`), so baseURL includes it. A dedicated port is
  * used to avoid clashing with any long-running dev server on 5173.
  */
 const PORT = 5199
-const baseURL = `http://localhost:${PORT}/velocityread/`
+const baseURL = `http://localhost:${PORT}/`
 
 export default defineConfig({
   testDir: './tests/e2e',

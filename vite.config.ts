@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  base: '/velocityread/',
+  base: '/',
   plugins: [
     react(),
     tailwindcss(),
@@ -22,16 +22,16 @@ export default defineConfig({
         name: 'VelocityRead',
         short_name: 'VelocityRead',
         description: 'RSVP speed reader',
-        start_url: '/velocityread/',
-        scope: '/velocityread/',
+        start_url: '/',
+        scope: '/',
         display: 'standalone',
         background_color: '#121212',
         theme_color: '#121212',
         icons: [
-          { src: '/velocityread/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/velocityread/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
           {
-            src: '/velocityread/icons/icon-maskable-512.png',
+            src: '/icons/icon-maskable-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
@@ -41,7 +41,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,png,svg,woff2,woff}'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-        navigateFallback: '/velocityread/index.html',
+        navigateFallback: '/index.html',
       },
     }),
   ],
