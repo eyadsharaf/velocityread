@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import { useReaderStore } from '../store/readerStore';
 
@@ -6,6 +7,11 @@ import { useReaderStore } from '../store/readerStore';
  * Settings popover anchored above the controls pill. Open state lives in
  * Reader (it gates the controls auto-fade); this component just renders the
  * controls and handles Escape / outside-click dismissal.
+ *
+ * Two shells share one panel: desktop keeps the pill-anchored popover;
+ * mobile renders a viewport-bottom sheet portaled to document.body, because
+ * the RSVP pane clips descendants (overflow-hidden) and cuts off anything
+ * anchored inside it.
  */
 
 const segBtn =
@@ -83,7 +89,8 @@ function ToggleRow({
 export default function SettingsPopover({ onClose }: { onClose: () => void }) {
   const settings = useReaderStore((s) => s.settings);
   const updateSettings = useReaderStore((s) => s.updateSettings);
-  const ref = useRef<HTMLDivElement>(null);
+  const desktopRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -99,7 +106,8 @@ export default function SettingsPopover({ onClose }: { onClose: () => void }) {
     const onDown = (e: PointerEvent) => {
       const target = e.target as Element | null;
       if (!target) return;
-      if (ref.current?.contains(target)) return;
+      if (desktopRef.current?.contains(target)) return;
+      if (sheetRef.current?.contains(target)) return;
       if (target.closest('[data-settings-toggle]')) return;
       onClose();
     };
@@ -107,13 +115,8 @@ export default function SettingsPopover({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener('pointerdown', onDown);
   }, [onClose]);
 
-  return (
-    <div
-      ref={ref}
-      role="dialog"
-      aria-label="Settings"
-      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[280px] max-h-[60dvh] overflow-y-auto p-4 flex flex-col gap-4 rounded-lg bg-elevated border border-border shadow-[0_4px_16px_rgba(0,0,0,0.35)] min-[430px]:top-auto min-[430px]:bottom-full min-[430px]:mt-0 min-[430px]:mb-3"
-    >
+  const panel = (
+    <>
       <SegRow label="Theme">
         <SegButton
           active={settings.theme === 'dark'}
@@ -197,6 +200,37 @@ export default function SettingsPopover({ onClose }: { onClose: () => void }) {
         checked={settings.pacingPauses}
         onToggle={() => updateSettings({ pacingPauses: !settings.pacingPauses })}
       />
-    </div>
+    </>
+  );
+
+  const shell =
+    'max-h-[60dvh] overflow-y-auto p-4 flex flex-col gap-4 rounded-lg bg-elevated border border-border shadow-[0_4px_16px_rgba(0,0,0,0.35)]';
+
+  return (
+    <>
+      {/* Desktop: anchored above the pill */}
+      <div
+        ref={desktopRef}
+        role="dialog"
+        aria-label="Settings"
+        className={`hidden min-[430px]:flex absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-[280px] ${shell}`}
+      >
+        {panel}
+      </div>
+
+      {/* Mobile: bottom sheet on the viewport — portaled out of the RSVP
+          pane, whose overflow-hidden would otherwise clip it. */}
+      {createPortal(
+        <div
+          ref={sheetRef}
+          role="dialog"
+          aria-label="Settings"
+          className={`fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] z-50 min-[430px]:hidden ${shell}`}
+        >
+          {panel}
+        </div>,
+        document.body
+      )}
+    </>
   );
 }

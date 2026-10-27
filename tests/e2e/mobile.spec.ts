@@ -80,8 +80,9 @@ test.describe('Feature: Mobile Layout (375px)', () => {
     await library.importFile('sample.txt')
     await reader.expectOpen('The')
 
-    // On mobile the popover opens downward over the reading pane — the
-    // first row (Theme) must not clip off the top of the viewport.
+    // On mobile settings render as a viewport-bottom sheet. Geometry alone
+    // can miss ancestor overflow clipping, so also hit-test the first and
+    // last rows: the element at each row's center must be inside the dialog.
     await reader.openSettings()
     const theme = page.getByRole('button', { name: 'Dark theme' })
     await expect(theme).toBeVisible()
@@ -94,5 +95,29 @@ test.describe('Feature: Mobile Layout (375px)', () => {
     const pacingBox = await pacing.boundingBox()
     expect(pacingBox, 'pacing row has a box').not.toBeNull()
     expect(pacingBox!.y + pacingBox!.height).toBeLessThanOrEqual(667)
+
+    const hits = await page.evaluate(() => {
+      // The panel renders twice (desktop popover + mobile sheet); only the
+      // visible shell is meaningful — display:none copies have no client rects.
+      const visible = (el: Element) => el.getClientRects().length > 0
+      const dialog = [
+        ...document.querySelectorAll('[role="dialog"][aria-label="Settings"]'),
+      ].find(visible)
+      if (!dialog) return { theme: false, pacing: false }
+      const inside = (el: Element) => {
+        const r = el.getBoundingClientRect()
+        const point = document.elementFromPoint(
+          r.left + r.width / 2,
+          r.top + r.height / 2
+        )
+        return !!point && el.contains(point)
+      }
+      return {
+        theme: inside(dialog.querySelector('[aria-label="Dark theme"]')!),
+        pacing: inside(dialog.querySelector('[aria-label="Pacing pauses"]')!),
+      }
+    })
+    expect(hits.theme, 'theme row is visually unclipped').toBe(true)
+    expect(hits.pacing, 'pacing row is visually unclipped').toBe(true)
   })
 })
